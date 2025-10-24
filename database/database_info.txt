@@ -1,0 +1,116 @@
+/**
+ * GUÍA DE LA ESTRUCTURA DE LA BASE DE DATOS
+ * ==========================================
+ */
+
+-- TABLA: usuarios
+-- Propósito: Almacenar información de usuarios (preparado para expansión futura)
+-- Campos principales:
+--   - id: Identificador único
+--   - nombre: Nombre del usuario
+--   - email: Email único del usuario
+--   - password: Contraseña (hash)
+--   - fecha_creacion: Timestamp de registro
+
+-- TABLA: presupuesto
+-- Propósito: Almacenar presupuestos mensuales por usuario
+-- Campos principales:
+--   - id: Identificador único
+--   - usuario_id: Referencia al usuario
+--   - mes: Mes del presupuesto (1-12)
+--   - anio: Año del presupuesto
+--   - monto_total: Cantidad total del presupuesto
+--   - fecha_creacion: Timestamp de creación
+--   - fecha_actualizacion: Timestamp de última modificación
+-- Índices:
+--   - unique_presupuesto: Evita duplicados (usuario_id, mes, anio)
+--   - idx_mes_anio: Optimiza búsquedas por fecha
+
+-- TABLA: movimientos
+-- Propósito: Registrar todos los gastos e ingresos
+-- Campos principales:
+--   - id: Identificador único
+--   - usuario_id: Referencia al usuario
+--   - tipo: 'gasto' o 'ingreso'
+--   - monto: Cantidad del movimiento (DECIMAL para precisión)
+--   - fecha: Fecha del movimiento
+--   - descripcion: Descripción del movimiento
+--   - categoria: Categoría del movimiento
+--   - fecha_creacion: Timestamp de registro
+--   - fecha_actualizacion: Timestamp de última modificación
+-- Índices:
+--   - idx_usuario_fecha: Optimiza búsquedas por usuario y fecha
+--   - idx_tipo: Optimiza filtros por tipo
+--   - idx_categoria: Optimiza agrupaciones por categoría
+
+/**
+ * CATEGORÍAS DISPONIBLES
+ * ======================
+ */
+-- comida: Gastos relacionados con alimentación
+-- transporte: Gastos de movilidad
+-- ocio: Entretenimiento y diversión
+-- salud: Gastos médicos y farmacia
+-- educacion: Cursos, libros, matrícula
+-- vivienda: Renta, servicios del hogar
+-- servicios: Agua, luz, internet, teléfono
+-- compras: Compras generales, ropa, etc.
+-- trabajo: Gastos relacionados con el trabajo
+-- otros: Categoría miscelánea
+
+/**
+ * RELACIONES
+ * ==========
+ */
+-- usuarios 1:N presupuesto (Un usuario tiene múltiples presupuestos, uno por mes)
+-- usuarios 1:N movimientos (Un usuario tiene múltiples movimientos)
+
+/**
+ * TRIGGERS Y FUNCIONES ÚTILES (Opcional - para futuro)
+ * ======================================================
+ */
+
+-- Ejemplo de trigger para validar fechas:
+/*
+DELIMITER $$
+CREATE TRIGGER before_insert_movimiento
+BEFORE INSERT ON movimientos
+FOR EACH ROW
+BEGIN
+    IF NEW.monto <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El monto debe ser mayor a 0';
+    END IF;
+END$$
+DELIMITER ;
+*/
+
+/**
+ * CONSULTAS ÚTILES
+ * =================
+ */
+
+-- Ver todos los gastos de un mes:
+-- SELECT * FROM movimientos 
+-- WHERE usuario_id = 1 AND tipo = 'gasto' 
+-- AND MONTH(fecha) = 10 AND YEAR(fecha) = 2025;
+
+-- Ver resumen por categoría:
+-- SELECT categoria, SUM(monto) as total, COUNT(*) as cantidad
+-- FROM movimientos
+-- WHERE usuario_id = 1 AND tipo = 'gasto'
+-- GROUP BY categoria
+-- ORDER BY total DESC;
+
+-- Ver presupuesto vs gastos:
+-- SELECT 
+--     p.monto_total as presupuesto,
+--     COALESCE(SUM(m.monto), 0) as gastado,
+--     p.monto_total - COALESCE(SUM(m.monto), 0) as restante
+-- FROM presupuesto p
+-- LEFT JOIN movimientos m ON m.usuario_id = p.usuario_id 
+--     AND MONTH(m.fecha) = p.mes 
+--     AND YEAR(m.fecha) = p.anio
+--     AND m.tipo = 'gasto'
+-- WHERE p.usuario_id = 1 AND p.mes = 10 AND p.anio = 2025
+-- GROUP BY p.id;
