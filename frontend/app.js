@@ -3,7 +3,7 @@
  */
 
 // Configuración
-const API_BASE_URL = '/proyectos/gestion_gastos/Gestion-Gastos/backend';
+const API_BASE_URL = 'http://localhost:8000/backend';
 const USUARIO_ID = 1;
 
 // Estado de la aplicación
